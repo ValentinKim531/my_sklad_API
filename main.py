@@ -171,6 +171,7 @@ async def create_customer_order_in_mysklad(order_data: dict):
             } for item in order_data.get("items", [])
         ]
     }
+    logging.info(f"Order_request to Mysklad: {order_request}")
 
     async with httpx.AsyncClient() as client:
         response = await client.post(url, headers=headers, json=order_request)
