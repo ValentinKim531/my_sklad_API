@@ -87,7 +87,7 @@ async def get_orders(limit: int = 200000):
         else:
             raise HTTPException(status_code=response.status_code, detail=response.text)
 
-SKU_MAPPING = {
+SKU_MAPPING_HREF = {
     "116864": "https://api.moysklad.ru/api/remap/1.2/entity/product/fa0878c2-e766-11ee-0a80-0bf2000b5bba",
     "116869": "https://api.moysklad.ru/api/remap/1.2/entity/product/a0c9549d-e6cf-11ee-0a80-0c270017d567",
     "116963": "https://api.moysklad.ru/api/remap/1.2/entity/product/c04d9acd-e767-11ee-0a80-0764000b33a5",
@@ -163,7 +163,7 @@ async def create_customer_order_in_mysklad(order_data: dict):
                 "price": item["price"] * 100,
                 "assortment": {
                     "meta": {
-                        "href": SKU_MAPPING.get(str(item["sku"]), ""),
+                        "href": SKU_MAPPING_HREF.get(str(item["sku"]), ""),
                         "type": "product",
                         "mediaType": "application/json"
                     }
