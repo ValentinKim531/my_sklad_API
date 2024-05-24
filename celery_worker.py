@@ -8,11 +8,17 @@ from crud import save_orders_to_redis, update_order_status_in_redis
 from main import get_daribar_headers, get_mysklad_headers, BASE_URL_DARIBAR, BASE_URL_SKLAD, \
     create_customer_order_in_mysklad, extract_daribar_order_number_from_description, refresh_daribar_token, \
     initialize_tokens
+import os
+
 
 logger = logging.getLogger(__name__)
 
+broker_url = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+backend_url = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+
+
 # app = Celery('tasks', broker='redis://localhost:6379/0', backend='redis://localhost:6379/0')
-app = Celery('tasks', broker='redis://redis:6379/0', backend='redis://redis:6379/0')
+app = Celery('tasks', broker=broker_url, backend=backend_url)
 
 app.conf.beat_schedule = {
     'process-orders-every-10-seconds': {
