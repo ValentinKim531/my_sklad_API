@@ -16,6 +16,8 @@ COPY start_uvicorn.sh /app/start_uvicorn.sh
 
 # Установка прав на выполнение скриптов
 RUN chmod +x /app/start_uvicorn.sh
+RUN chmod +x wait-for-redis.sh
+
 
 EXPOSE 6379
 EXPOSE 8000
