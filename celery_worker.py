@@ -54,7 +54,7 @@ async def redis_lock(redis, key: str, timeout: int = 30):
 
 async def process_orders_async():
     await initialize_tokens()
-    redis = aioredis.from_url("redis://localhost", encoding="utf-8", decode_responses=True)
+    redis = aioredis.from_url(broker_url, encoding="utf-8", decode_responses=True)
     async with redis_lock(redis, "process_orders_lock", timeout=30):
         headers = await get_daribar_headers()
         url = f"{BASE_URL_DARIBAR}/public/api/v2/orders?limit=2000"
@@ -92,7 +92,7 @@ async def process_orders_async():
 
 
 async def update_order_statuses_async():
-    redis = aioredis.from_url("redis://localhost", encoding="utf-8", decode_responses=True)
+    redis = aioredis.from_url(broker_url, encoding="utf-8", decode_responses=True)
     async with redis_lock(redis, "update_order_statuses_lock", timeout=30):
         status_map = {
             "https://api.moysklad.ru/api/remap/1.2/entity/customerorder/metadata/states/62b75fc9-dbb2-11ee-0a80-165c00130555": "in_pharmacy_placed",

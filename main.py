@@ -77,7 +77,7 @@ async def load_tokens_from_redis():
 @app.get("/get_orders")
 async def get_orders(limit: int = 200000):
     headers = await get_daribar_headers()
-    url = f"{BASE_URL_DARIBAR}/api/v1/orders?limit={limit}"
+    url = f"{BASE_URL_DARIBAR}/public/api/v2/orders?limit={limit}"
     async with httpx.AsyncClient() as client:
         response = await client.get(url, headers=headers)
         if response.status_code == 200:
@@ -269,6 +269,7 @@ async def startup_event():
     logger.info(f"token on start: {DARIBAR_ACCESS_TOKEN}")
     if not DARIBAR_ACCESS_TOKEN or not DARIBAR_REFRESH_TOKEN:
         await refresh_daribar_token()
+    logger.info("Application startup complete and listening on port 8000")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
