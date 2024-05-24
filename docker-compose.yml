@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    networks:
+      - my_sklad_net
+
+  app:
+    build: .
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    networks:
+      - my_sklad_net
+    depends_on:
+      - redis
+
+  celery_worker:
+    build: .
+    command: celery -A celery_worker worker --loglevel=info
+    volumes:
+      - .:/app
+    networks:
+      - my_sklad_net
+    depends_on:
+      - redis
+
+networks:
+  my_sklad_net:
+    driver: bridge
