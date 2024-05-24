@@ -21,7 +21,7 @@ services:
 
   celery_worker:
     build: .
-    command: celery -A celery_worker worker --loglevel=info
+    command: /app/.venv/bin/celery -A celery_worker worker --loglevel=info
     volumes:
       - .:/app
     networks:
