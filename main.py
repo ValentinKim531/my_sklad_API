@@ -7,6 +7,7 @@ from environs import Env
 import logging
 import pandas as pd
 
+from celery_worker import broker_url
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -64,12 +65,12 @@ async def refresh_daribar_token():
             logger.error(f"Failed to refresh Daribar token: {response.text}")
 
 async def save_tokens_to_redis(access_token):
-    redis = await aioredis.from_url("redis://localhost", encoding="utf-8", decode_responses=True)
+    redis = await aioredis.from_url(broker_url, encoding="utf-8", decode_responses=True)
     await redis.set("daribar_access_token", access_token)
     await redis.close()
 
 async def load_tokens_from_redis():
-    redis = await aioredis.from_url("redis://localhost", encoding="utf-8", decode_responses=True)
+    redis = await aioredis.from_url(broker_url, encoding="utf-8", decode_responses=True)
     global DARIBAR_ACCESS_TOKEN
     DARIBAR_ACCESS_TOKEN = await redis.get("daribar_access_token")
     await redis.close()

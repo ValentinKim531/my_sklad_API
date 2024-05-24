@@ -75,7 +75,7 @@ async def process_orders_async():
                 logger.info(f"broker_url: {backend_url}")
 
                 for order_data in orders_data["result"]:
-                    if order_data.get("pharmacy_status") != "InPharmacyPlaced":
+                    if order_data.get("pharmacy_status") != "InPharmacyReady":
                         continue
                     daribar_order_number = order_data["order_number"]
 

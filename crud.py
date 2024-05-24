@@ -1,15 +1,20 @@
+import os
+
 import aioredis
 import json
 import logging
 
+from celery_worker import broker_url
+
 logger = logging.getLogger(__name__)
 
 
+
 async def save_orders_to_redis(orders_data):
-    redis = aioredis.from_url("redis://localhost", encoding="utf-8", decode_responses=True)
+    redis = aioredis.from_url(broker_url, encoding="utf-8", decode_responses=True)
     for order in orders_data:
         order_number = order["order_number"]
-        if order.get("pharmacy_status") == "InPharmacyPlaced":
+        if order.get("pharmacy_status") == "InPharmacyReady":
             await redis.set(order_number, json.dumps(order))
             logger.info(f"Order {order_number} saved to Redis.")
     await redis.close()
@@ -17,7 +22,7 @@ async def save_orders_to_redis(orders_data):
 
 
 async def update_order_status_in_redis(order_number, new_status):
-    redis = aioredis.from_url("redis://localhost", encoding="utf-8", decode_responses=True)
+    redis = aioredis.from_url(broker_url, encoding="utf-8", decode_responses=True)
     redis_exists = await redis.exists(order_number)
     if redis_exists:
         order_data = json.loads(await redis.get(order_number))

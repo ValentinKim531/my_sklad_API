@@ -20,9 +20,7 @@ services:
       - my_sklad_net
     depends_on:
       - redis
-    environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+
 
   celery_worker:
     build: .
@@ -33,9 +31,7 @@ services:
       - my_sklad_net
     depends_on:
       - redis
-    environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+
 
 networks:
   my_sklad_net:
