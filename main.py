@@ -17,8 +17,8 @@ env = Env()
 env.read_env()
 
 BASE_URL_SKLAD = env.str("BASE_URL_SKLAD", "https://api.moysklad.ru/api/remap/1.2")
-USERNAME = env.str("USERNAME", "daribar@yanishv11")
-PASSWORD = env.str("PASSWORD", "Gfhfljrc#123")
+USERNAME = env.str("USERNAME", "")
+PASSWORD = env.str("PASSWORD", "")
 
 BASE_URL_DARIBAR = env.str("BASE_URL_DARIBAR", "https://prod-backoffice.daribar.com")
 DARIBAR_ACCESS_TOKEN = ""
