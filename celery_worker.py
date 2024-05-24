@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 broker_url = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
 backend_url = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
 
+logger.info(f"broker_url: {broker_url}")
+logger.info(f"broker_url: {backend_url}")
 
 # app = Celery('tasks', broker='redis://localhost:6379/0', backend='redis://localhost:6379/0')
 app = Celery('tasks', broker=broker_url, backend=backend_url)
@@ -61,7 +63,7 @@ async def process_orders_async():
         async with ClientSession() as session:
             response = await session.get(url, headers=headers)
 
-            if response.status == 401:  # Unauthorized
+            if response.status == 401:
                 await refresh_daribar_token()
                 headers = await get_daribar_headers()
                 response = await session.get(url, headers=headers)
@@ -69,7 +71,7 @@ async def process_orders_async():
             orders_data = await response.json()
             if orders_data and orders_data.get("result"):
                 await save_orders_to_redis(orders_data["result"])
-                logger.info("Orders processed and saved to Redis")
+                logger.info(f"Orders processed and saved to Redis: {orders_data}")
 
                 for order_data in orders_data["result"]:
                     if order_data.get("pharmacy_status") != "InPharmacyPlaced":

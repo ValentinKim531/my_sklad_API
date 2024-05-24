@@ -174,6 +174,7 @@ async def create_customer_order_in_mysklad(order_data: dict):
     async with httpx.AsyncClient() as client:
         response = await client.post(url, headers=headers, json=order_request)
         if response.status_code == 200:
+            logger.info(f"Created in Mysklad: {order_request}")
             return True
         else:
             logger.error(f"Failed to create order in MySklad: {response.text}")
