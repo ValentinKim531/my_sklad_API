@@ -7,8 +7,6 @@ from environs import Env
 import logging
 import pandas as pd
 
-from celery_worker import broker_url
-
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,6 +23,8 @@ BASE_URL_DARIBAR = env.str("BASE_URL_DARIBAR", "https://prod-backoffice.daribar.
 DARIBAR_ACCESS_TOKEN = ""
 DARIBAR_REFRESH_TOKEN = env.str("DARIBAR_REFRESH_TOKEN")
 
+broker_url = env.str('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+backend_url = env.str('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
 
 def get_mysklad_headers() -> dict:
     credentials = base64.b64encode(f"{USERNAME}:{PASSWORD}".encode()).decode("utf-8")
