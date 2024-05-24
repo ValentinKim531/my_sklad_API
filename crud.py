@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 env = Env()
 env.read_env()
-broker_url = env.str('CELERY_BROKER_URL', 'redis://redis:6379/0')
+broker_url = env.str('REDIS_URL')
 
 
 async def save_orders_to_redis(orders_data):

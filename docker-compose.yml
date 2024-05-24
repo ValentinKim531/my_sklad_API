@@ -21,8 +21,7 @@ services:
     depends_on:
       - redis
     environment:
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      REDIS_URL: ${REDIS_URL}
 
 
   celery_worker:
@@ -35,8 +34,7 @@ services:
     depends_on:
       - redis
     environment:
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      REDIS_URL: ${REDIS_URL}
 
 networks:
   my_sklad_net:

@@ -16,8 +16,8 @@ env.read_env()
 logger = logging.getLogger(__name__)
 
 
-broker_url = env.str('CELERY_BROKER_URL', 'redis://redis:6379/0')
-backend_url = env.str('CELERY_RESULT_BACKEND', 'redis://redis:6379/0')
+broker_url = env.str('REDIS_URL')
+backend_url = env.str('REDIS_URL')
 
 
 # app = Celery('tasks', broker='redis://localhost:6379/0', backend='redis://localhost:6379/0')

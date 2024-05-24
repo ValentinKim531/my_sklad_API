@@ -23,8 +23,8 @@ BASE_URL_DARIBAR = env.str("BASE_URL_DARIBAR", "https://prod-backoffice.daribar.
 DARIBAR_ACCESS_TOKEN = ""
 DARIBAR_REFRESH_TOKEN = env.str("DARIBAR_REFRESH_TOKEN")
 
-broker_url = env.str('CELERY_BROKER_URL', 'redis://redis:6379/0')
-backend_url = env.str('CELERY_RESULT_BACKEND', 'redis://redis:6379/0')
+broker_url = env.str('REDIS_URL')
+backend_url = env.str('REDIS_URL')
 
 def get_mysklad_headers() -> dict:
     credentials = base64.b64encode(f"{USERNAME}:{PASSWORD}".encode()).decode("utf-8")
