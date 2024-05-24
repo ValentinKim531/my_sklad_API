@@ -11,7 +11,8 @@ from main import get_daribar_headers, get_mysklad_headers, BASE_URL_DARIBAR, BAS
 
 logger = logging.getLogger(__name__)
 
-app = Celery('tasks', broker='redis://localhost:6379/0', backend='redis://localhost:6379/0')
+# app = Celery('tasks', broker='redis://localhost:6379/0', backend='redis://localhost:6379/0')
+app = Celery('tasks', broker='redis://redis:6379/0', backend='redis://redis:6379/0')
 
 app.conf.beat_schedule = {
     'process-orders-every-10-seconds': {
