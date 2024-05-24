@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   redis:
-    image: redis:latest
+    image: redis
     hostname: redis
     restart: always
     ports:
