@@ -22,9 +22,6 @@ services:
   celery_worker:
     build: .
     command: /app/.venv/bin/celery -A celery_worker worker --loglevel=info
-    environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     volumes:
       - .:/app
     networks:
