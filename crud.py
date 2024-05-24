@@ -3,11 +3,13 @@ import os
 import aioredis
 import json
 import logging
-
-from celery_worker import broker_url
+from environs import Env
 
 logger = logging.getLogger(__name__)
 
+env = Env()
+env.read_env()
+broker_url = env.str('CELERY_BROKER_URL', 'redis://localhost:6379/0')
 
 
 async def save_orders_to_redis(orders_data):

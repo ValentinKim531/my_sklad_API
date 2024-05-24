@@ -13,14 +13,14 @@ RUN /app/.venv/bin/pip install --upgrade pip && /app/.venv/bin/pip install -r re
 
 # Копирование скриптов для запуска
 COPY start_uvicorn.sh /app/start_uvicorn.sh
+COPY wait-for-redis.sh /app/wait-for-redis.sh
 
 # Установка прав на выполнение скриптов
 RUN chmod +x /app/start_uvicorn.sh
-RUN chmod +x wait-for-redis.sh
-
+RUN chmod +x /app/wait-for-redis.sh
 
 EXPOSE 6379
 EXPOSE 8000
 
 # Запуск всех служб
-CMD service redis-server start && . /app/.venv/bin/activate && uvicorn main:app --host 0.0.0.0 --port 8000 & /app/.venv/bin/celery -A celery_worker worker --beat --loglevel=info
+CMD service redis-server start && /app/start_uvicorn.sh & /app/.venv/bin/celery -A celery_worker worker --beat --loglevel=info
