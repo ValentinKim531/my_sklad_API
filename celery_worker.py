@@ -1,6 +1,8 @@
 import logging
 import asyncio
 from contextlib import asynccontextmanager
+import json
+import httpx
 from celery import Celery
 from aiohttp import ClientSession
 import aioredis
@@ -55,6 +57,44 @@ async def redis_lock(redis, key: str, timeout: int = 30):
         raise RuntimeError("Unable to acquire lock")
 
 
+async def update_order_status_in_mysklad(order_id, status_href):
+    headers = get_mysklad_headers()
+    url = f"{BASE_URL_SKLAD}/entity/customerorder/{order_id}"
+    payload = {
+        "state": {
+            "meta": {
+                "href": status_href,
+                "type": "state",
+                "mediaType": "application/json"
+            }
+        }
+    }
+    async with httpx.AsyncClient() as client:
+        response = await client.put(url, headers=headers, json=payload)
+        if response.status_code == 200:
+            logger.info(f"Order {order_id} status updated to Canceled in MySklad.")
+            return True
+        else:
+            logger.error(f"Failed to update order status in MySklad: {response.text}")
+            return False
+
+
+
+async def find_order_in_mysklad(order_number):
+    headers = get_mysklad_headers()
+    url = f"{BASE_URL_SKLAD}/entity/customerorder?filter=name={order_number}"
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, headers=headers)
+        if response.status_code == 200:
+            orders = response.json().get("rows", [])
+            if orders:
+                return orders[0]["id"]  # Возвращаем ID заказа
+        logger.error(f"Order {order_number} not found in MySklad.")
+        return None
+
+
+
+
 async def process_orders_async():
     await initialize_tokens()
     redis = aioredis.from_url(broker_url, encoding="utf-8", decode_responses=True)
@@ -77,22 +117,30 @@ async def process_orders_async():
                 logger.info(f"broker_url: {backend_url}")
 
                 for order_data in orders_data["result"]:
-                    if order_data.get("pharmacy_status") != "InPharmacyReady":
-                        continue
                     daribar_order_number = order_data["order_number"]
-
                     redis_key = f"daribar_order:{daribar_order_number}"
-                    # if await redis.exists(redis_key):
-                    #     logger.info(f"Order {daribar_order_number} already exists in Redis.")
-                    #     continue
 
-                    created = await create_customer_order_in_mysklad(order_data)
-                    if created:
-                        logger.info(f"Order {daribar_order_number} created in MySklad.")
-                        await redis.set(redis_key, daribar_order_number)
-                        logger.info(f"Order {daribar_order_number} saved to Redis with MySklad order number {daribar_order_number}.")
-                    else:
-                        logger.info(f"Order {daribar_order_number} already exists in MySklad.")
+                    if await redis.exists(redis_key):
+                        logger.info(f"Order {daribar_order_number} already exists in Redis.")
+                        if order_data.get("pharmacy_status") == "Canceled":
+                            logger.info(f"Order {daribar_order_number} is Canceled in Daribar.")
+                            order_info = await redis.get(redis_key)
+                            order_info = json.loads(order_info)
+                            mysklad_order_id = order_info.get("mysklad_order_id")
+                            if mysklad_order_id:
+                                canceled_status_href = "https://api.moysklad.ru/api/remap/1.2/entity/customerorder/metadata/states/62b7634a-dbb2-11ee-0a80-165c0013055b"
+                                await update_order_status_in_mysklad(mysklad_order_id, canceled_status_href)
+                            order_info["pharmacy_status"] = "Canceled"
+                            await redis.set(redis_key, json.dumps(order_info))
+                        continue
+
+                    if order_data.get("pharmacy_status") == "InPharmacyReady":
+                        created = await create_customer_order_in_mysklad(order_data)
+                        if created:
+                            logger.info(f"Order {daribar_order_number} created in MySklad.")
+                            await redis.set(redis_key, json.dumps(order_data))
+                        else:
+                            logger.error(f"Failed to create order {daribar_order_number} in MySklad.")
     await redis.close()
 
 
@@ -179,12 +227,12 @@ def process_orders(self):
         raise self.retry(exc=exc)
 
 
-@app.task(bind=True, default_retry_delay=5 * 60, max_retries=3)
-def update_order_statuses(self):
-    try:
-        asyncio.run(update_order_statuses_async())
-    except RuntimeError as exc:
-        raise self.retry(exc=exc)
+# @app.task(bind=True, default_retry_delay=5 * 60, max_retries=3)
+# def update_order_statuses(self):
+#     try:
+#         asyncio.run(update_order_statuses_async())
+#     except RuntimeError as exc:
+#         raise self.retry(exc=exc)
 
 
 
