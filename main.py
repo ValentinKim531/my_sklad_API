@@ -286,11 +286,18 @@ async def export_orders():
 
 @app.on_event("startup")
 async def startup_event():
+    logger.info("Starting application...")
     await initialize_tokens()
     logger.info(f"token on start: {DARIBAR_ACCESS_TOKEN}")
     if not DARIBAR_ACCESS_TOKEN or not DARIBAR_REFRESH_TOKEN:
         await refresh_daribar_token()
     logger.info("Application startup complete and listening on port 8000")
+
+
+@app.get("/")
+async def read_root():
+    return {"message": "Hello, World!"}
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
