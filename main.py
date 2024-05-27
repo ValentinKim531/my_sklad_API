@@ -13,7 +13,7 @@ from fastapi.responses import StreamingResponse
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
+fastapi_app = FastAPI()
 env = Env()
 env.read_env()
 
@@ -77,7 +77,7 @@ async def load_tokens_from_redis():
     DARIBAR_ACCESS_TOKEN = await redis.get("daribar_access_token")
     await redis.close()
 
-@app.get("/get_orders")
+@fastapi_app.get("/get_orders")
 async def get_orders(limit: int = 200000):
     headers = await get_daribar_headers()
     print(headers)
@@ -228,7 +228,7 @@ SKU_MAPPING = {
 }
 
 
-@app.get("/export_orders")
+@fastapi_app.get("/export_orders")
 async def export_orders():
     headers = await get_daribar_headers()
     url = f"{BASE_URL_DARIBAR}/public/api/v2/orders?limit=2000"
@@ -284,7 +284,7 @@ async def export_orders():
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@app.on_event("startup")
+@fastapi_app.on_event("startup")
 async def startup_event():
     logger.info("Starting application...")
     await initialize_tokens()
@@ -294,11 +294,11 @@ async def startup_event():
     logger.info("Application startup complete and listening on port 8000")
 
 
-@app.get("/q")
+@fastapi_app.get("/q")
 async def read_root():
     logger.info("Root endpoint called")
     return {"message": "Hello, World!"}
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(fastapi_app, host="0.0.0.0", port=8000)

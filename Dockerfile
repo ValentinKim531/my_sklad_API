@@ -16,12 +16,11 @@ COPY start_uvicorn.sh /app/start_uvicorn.sh
 COPY wait-for-redis.sh /app/wait-for-redis.sh
 
 # Установка прав на выполнение скриптов
-#RUN chmod +x /app/start_uvicorn.sh
+RUN chmod +x /app/start_uvicorn.sh
 RUN chmod +x /app/wait-for-redis.sh
 
 EXPOSE 6379
 EXPOSE 8000
 
 # Запуск всех служб
-#CMD service redis-server start && /app/.venv/bin/celery -A celery_worker worker --beat --loglevel=info
-CMD /app/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+CMD service redis-server start && /app/.venv/bin/uvicorn main:fastapi_app --host 0.0.0.0 --port 8000 --reload & /app/.venv/bin/celery -A celery_worker worker --beat --loglevel=info
