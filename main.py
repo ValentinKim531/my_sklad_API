@@ -6,6 +6,8 @@ import base64
 from environs import Env
 import logging
 import pandas as pd
+import io
+from fastapi.responses import StreamingResponse
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -78,6 +80,7 @@ async def load_tokens_from_redis():
 @app.get("/get_orders")
 async def get_orders(limit: int = 200000):
     headers = await get_daribar_headers()
+    print(headers)
     url = f"{BASE_URL_DARIBAR}/public/api/v2/orders?limit={limit}"
     async with httpx.AsyncClient() as client:
         response = await client.get(url, headers=headers)
@@ -232,7 +235,13 @@ async def export_orders():
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(url, headers=headers)
+            if response.status_code == 401:
+                await refresh_daribar_token()
+                headers = await get_daribar_headers()
+                response = await client.get(url, headers=headers)
+
             response.raise_for_status()  # Проверка на успешный статус ответа
+
             orders_data = response.json()
             orders = orders_data.get("result", [])
 
@@ -253,9 +262,20 @@ async def export_orders():
                     order_items.append({"Наименование": name, "Количество": quantity})
 
             df = pd.DataFrame(order_items)
-            output_path = "/Users/mak/Desktop/Python/my_sklad_API_dev/orders_export.xlsx"
-            df.to_excel(output_path, index=False)
-            return {"status": "success", "file_path": output_path}
+
+            bio = io.BytesIO()
+            with pd.ExcelWriter(bio, engine='xlsxwriter') as writer:
+                df.to_excel(writer, index=False)
+            bio.seek(0)
+
+            filename = "orders_export.xlsx"
+
+            headers = {
+                'Content-Disposition': f'attachment; filename="{filename}"',
+                'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            }
+
+            return StreamingResponse(bio, headers=headers)
     except httpx.HTTPStatusError as e:
         logger.error(f"HTTP error occurred: {e.response.status_code} - {e.response.text}")
         raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
@@ -264,11 +284,9 @@ async def export_orders():
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-
 @app.on_event("startup")
 async def startup_event():
     await initialize_tokens()
-    await load_tokens_from_redis()
     logger.info(f"token on start: {DARIBAR_ACCESS_TOKEN}")
     if not DARIBAR_ACCESS_TOKEN or not DARIBAR_REFRESH_TOKEN:
         await refresh_daribar_token()
