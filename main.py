@@ -296,6 +296,7 @@ async def startup_event():
 
 @app.get("/q")
 async def read_root():
+    logger.info("Root endpoint called")
     return {"message": "Hello, World!"}
 
 
