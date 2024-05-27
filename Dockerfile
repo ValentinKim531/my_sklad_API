@@ -22,4 +22,4 @@ RUN chmod +x /app/wait-for-redis.sh
 #EXPOSE 6379
 EXPOSE 8000
 
-CMD /app/.venv/bin/uvicorn main:fastapi_app --host 0.0.0.0 --port 8000 --reload
+CMD /app/.venv/bin/uvicorn main:fastapi_app --host 0.0.0.0 --port $PORT --reload
