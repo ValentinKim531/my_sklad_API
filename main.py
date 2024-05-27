@@ -294,7 +294,7 @@ async def startup_event():
     logger.info("Application startup complete and listening on port 8000")
 
 
-@app.get("/")
+@app.get("/q")
 async def read_root():
     return {"message": "Hello, World!"}
 
