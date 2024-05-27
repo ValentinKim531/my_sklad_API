@@ -82,9 +82,9 @@ async def process_orders_async():
                     daribar_order_number = order_data["order_number"]
 
                     redis_key = f"daribar_order:{daribar_order_number}"
-                    if await redis.exists(redis_key):
-                        logger.info(f"Order {daribar_order_number} already exists in Redis.")
-                        continue
+                    # if await redis.exists(redis_key):
+                    #     logger.info(f"Order {daribar_order_number} already exists in Redis.")
+                    #     continue
 
                     created = await create_customer_order_in_mysklad(order_data)
                     if created:
