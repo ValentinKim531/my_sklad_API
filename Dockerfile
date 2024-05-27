@@ -23,4 +23,4 @@ EXPOSE 6379
 EXPOSE 8000
 
 # Запуск всех служб
-CMD service redis-server start && /app/start_uvicorn.sh & /app/.venv/bin/celery -A celery_worker worker --beat --loglevel=info
+CMD service redis-server start && /app/.venv/bin/uvicorn main:app --reload & /app/.venv/bin/celery -A celery_worker worker --beat --loglevel=info
