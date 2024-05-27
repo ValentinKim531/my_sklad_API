@@ -1,3 +1,5 @@
+import re
+
 import aioredis
 import uvicorn
 from fastapi import FastAPI, HTTPException
@@ -127,11 +129,12 @@ async def create_customer_order_in_mysklad(order_data: dict):
     headers = get_mysklad_headers()
     url = f"{BASE_URL_SKLAD}/entity/customerorder"
     order_name = str(order_data.get("order_number", ""))
+    comment = str(order_data.get("comment", ""))
 
 
     order_request = {
         "name": "",
-        "description": f"Заказ №{order_name}",
+        "description": f"Заказ №{order_name}, {comment}",
         "organization": {
             "meta": {
                 "href": "https://api.moysklad.ru/api/remap/1.2/entity/organization/86ee384f-dbbc-11ee-0a80-09c900152256",
@@ -188,10 +191,10 @@ async def create_customer_order_in_mysklad(order_data: dict):
 
 async def extract_daribar_order_number_from_description(description: str) -> str:
     logger.info(f"Extracting Daribar order number from description: {description}")
-    if "Заказ №" in description:
-        return description.split("Заказ №")[1].strip()
+    match = re.search(r"Заказ №(\d+)", description)
+    if match:
+        return match.group(1).strip()
     return None
-
 
 
 SKU_MAPPING = {
