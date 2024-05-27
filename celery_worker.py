@@ -80,16 +80,20 @@ async def update_order_status_in_mysklad(order_id, status_href):
 
 
 
-async def find_order_in_mysklad(order_number):
+async def find_order_in_mysklad(daribar_order_number):
     headers = get_mysklad_headers()
-    url = f"{BASE_URL_SKLAD}/entity/customerorder?filter=name={order_number}"
+    url = f"{BASE_URL_SKLAD}/entity/customerorder?filter=name={daribar_order_number}"
     async with httpx.AsyncClient() as client:
         response = await client.get(url, headers=headers)
         if response.status_code == 200:
             orders = response.json().get("rows", [])
             if orders:
-                return orders[0]["id"]  # Возвращаем ID заказа
-        logger.error(f"Order {order_number} not found in MySklad.")
+                order_id = orders[0]["id"]
+                order_description = orders[0]["description"]
+                extracted_order_number = await extract_daribar_order_number_from_description(order_description)
+                if extracted_order_number == daribar_order_number:
+                    return order_id
+        logger.error(f"Order {daribar_order_number} not found in MySklad.")
         return None
 
 
@@ -115,7 +119,7 @@ async def process_orders_async():
                 await save_orders_to_redis(orders_data["result"])
                 logger.info(f"Orders processed and saved to Redis: {orders_data}")
                 logger.info(f"broker_url: {broker_url}")
-                logger.info(f"broker_url: {backend_url}")
+                logger.info(f"backend_url: {backend_url}")
 
                 for order_data in orders_data["result"]:
                     daribar_order_number = order_data["order_number"]
@@ -144,9 +148,6 @@ async def process_orders_async():
                         created = await create_customer_order_in_mysklad(order_data)
                         if created:
                             logger.info(f"Order {daribar_order_number} created in MySklad.")
-                            mysklad_order_id = await find_order_in_mysklad(daribar_order_number)
-                            if mysklad_order_id:
-                                order_data["mysklad_order_id"] = mysklad_order_id
                             await redis.set(redis_key, json.dumps(order_data))
                         else:
                             logger.error(f"Failed to create order {daribar_order_number} in MySklad.")
