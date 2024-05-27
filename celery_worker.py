@@ -95,6 +95,7 @@ async def find_order_in_mysklad(order_number):
 
 
 
+
 async def process_orders_async():
     await initialize_tokens()
     redis = aioredis.from_url(broker_url, encoding="utf-8", decode_responses=True)
@@ -127,17 +128,25 @@ async def process_orders_async():
                             order_info = await redis.get(redis_key)
                             order_info = json.loads(order_info)
                             mysklad_order_id = order_info.get("mysklad_order_id")
+                            if not mysklad_order_id:
+                                mysklad_order_id = await find_order_in_mysklad(daribar_order_number)
+                                if mysklad_order_id:
+                                    order_info["mysklad_order_id"] = mysklad_order_id
+
                             if mysklad_order_id:
                                 canceled_status_href = "https://api.moysklad.ru/api/remap/1.2/entity/customerorder/metadata/states/62b7634a-dbb2-11ee-0a80-165c0013055b"
                                 await update_order_status_in_mysklad(mysklad_order_id, canceled_status_href)
-                            order_info["pharmacy_status"] = "Canceled"
-                            await redis.set(redis_key, json.dumps(order_info))
+                                order_info["pharmacy_status"] = "Canceled"
+                                await redis.set(redis_key, json.dumps(order_info))
                         continue
 
                     if order_data.get("pharmacy_status") == "InPharmacyReady":
                         created = await create_customer_order_in_mysklad(order_data)
                         if created:
                             logger.info(f"Order {daribar_order_number} created in MySklad.")
+                            mysklad_order_id = await find_order_in_mysklad(daribar_order_number)
+                            if mysklad_order_id:
+                                order_data["mysklad_order_id"] = mysklad_order_id
                             await redis.set(redis_key, json.dumps(order_data))
                         else:
                             logger.error(f"Failed to create order {daribar_order_number} in MySklad.")
