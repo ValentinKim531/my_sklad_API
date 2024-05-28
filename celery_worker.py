@@ -31,11 +31,11 @@ app.conf.broker_connection_max_retries = None
 app.conf.beat_schedule = {
     'process-orders-every-10-seconds': {
         'task': 'celery_worker.process_orders',
-        'schedule': 10.0,
+        'schedule': 30.0,
     },
     # 'update-order-statuses-every-10-seconds': {
     #     'task': 'celery_worker.update_order_statuses',
-    #     'schedule': 10.0,
+    #     'schedule': 30.0,
     # },
 }
 
@@ -83,7 +83,7 @@ async def update_order_status_in_mysklad(order_id, status_href):
 async def find_order_in_mysklad(daribar_order_number):
     headers = get_mysklad_headers()
     logger.info(f"daribar_order_number = {daribar_order_number}")
-    url = f"{BASE_URL_SKLAD}/entity/customerorder?filter=description={extract_daribar_order_number_from_description(daribar_order_number)}"
+    url = f"{BASE_URL_SKLAD}/entity/customerorder?filter=description~{daribar_order_number}"
     logger.info(f"URL Mysklad found order = {url}")
     async with httpx.AsyncClient() as client:
         response = await client.get(url, headers=headers)
@@ -100,7 +100,6 @@ async def find_order_in_mysklad(daribar_order_number):
                     return order_id
         logger.error(f"Order {daribar_order_number} not found in MySklad.")
         return None
-
 
 
 
