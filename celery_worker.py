@@ -87,10 +87,13 @@ async def find_order_in_mysklad(daribar_order_number):
         response = await client.get(url, headers=headers)
         if response.status_code == 200:
             orders = response.json().get("rows", [])
+            logger.info(f"order found: {orders}")
             for order in orders:
                 order_id = order["id"]
+                logger.info(f"order ID: {order_id}")
                 order_description = order["description"]
                 extracted_order_number = extract_daribar_order_number_from_description(order_description)
+                logger.info(f"extracted_order_number ID: {extracted_order_number} = {daribar_order_number}")
                 if extracted_order_number == daribar_order_number:
                     return order_id
         logger.error(f"Order {daribar_order_number} not found in MySklad.")
