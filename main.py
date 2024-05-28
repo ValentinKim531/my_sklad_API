@@ -1,5 +1,5 @@
 import re
-
+import datetime
 import aioredis
 import uvicorn
 from fastapi import FastAPI, HTTPException
@@ -125,16 +125,21 @@ SKU_MAPPING_HREF = {
     "116863": "https://api.moysklad.ru/api/remap/1.2/entity/product/18d2d506-f504-11ee-0a80-00f000481b4c"
 }
 
+def get_tomorrow_date():
+    tomorrow = datetime.datetime.now() + datetime.timedelta(days=1)
+    return tomorrow.strftime('%Y-%m-%d %H:%M:%S')
+
+
 async def create_customer_order_in_mysklad(order_data: dict):
     headers = get_mysklad_headers()
     url = f"{BASE_URL_SKLAD}/entity/customerorder"
     order_name = str(order_data.get("order_number", ""))
     comment = str(order_data.get("comment", ""))
 
-
     order_request = {
         "name": "",
         "description": f"Заказ №{order_name}, {comment}",
+        "moment": get_tomorrow_date(),
         "organization": {
             "meta": {
                 "href": "https://api.moysklad.ru/api/remap/1.2/entity/organization/86ee384f-dbbc-11ee-0a80-09c900152256",
