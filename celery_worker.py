@@ -82,7 +82,9 @@ async def update_order_status_in_mysklad(order_id, status_href):
 
 async def find_order_in_mysklad(daribar_order_number):
     headers = get_mysklad_headers()
-    url = f"{BASE_URL_SKLAD}/entity/customerorder?filter=name={daribar_order_number}"
+    logger.info(f"daribar_order_number = {daribar_order_number}")
+    url = f"{BASE_URL_SKLAD}/entity/customerorder?filter=description={extract_daribar_order_number_from_description(daribar_order_number)}"
+    logger.info(f"URL Mysklad found order = {url}")
     async with httpx.AsyncClient() as client:
         response = await client.get(url, headers=headers)
         if response.status_code == 200:
@@ -119,9 +121,6 @@ async def process_orders_async():
             orders_data = await response.json()
             if orders_data and orders_data.get("result"):
                 await save_orders_to_redis(orders_data["result"])
-                logger.info(f"Orders processed and saved to Redis: {orders_data}")
-                logger.info(f"broker_url: {broker_url}")
-                logger.info(f"backend_url: {backend_url}")
 
                 for order_data in orders_data["result"]:
                     daribar_order_number = order_data["order_number"]
