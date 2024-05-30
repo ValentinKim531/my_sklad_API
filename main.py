@@ -122,7 +122,7 @@ SKU_MAPPING_HREF = {
     "116968": "https://api.moysklad.ru/api/remap/1.2/entity/product/550f4198-0635-11ef-0a80-03c3002a8892",
     "116861": "https://api.moysklad.ru/api/remap/1.2/entity/product/b7f3894a-f800-11ee-0a80-008200135ef3",
     "116862": "https://api.moysklad.ru/api/remap/1.2/entity/product/744ac6e9-f273-11ee-0a80-100900104a00",
-    "116863": "https://api.moysklad.ru/api/remap/1.2/entity/product/18d2d506-f504-11ee-0a80-00f000481b4c"
+    # "116863": "https://api.moysklad.ru/api/remap/1.2/entity/product/18d2d506-f504-11ee-0a80-00f000481b4c"
 }
 
 def get_tomorrow_date():

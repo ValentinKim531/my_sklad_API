@@ -112,10 +112,15 @@ async def process_orders_async():
         async with ClientSession() as session:
             response = await session.get(url, headers=headers)
 
+            logger.info(f"Response status: {response.status}")
             if response.status == 401:
                 await refresh_daribar_token()
                 headers = await get_daribar_headers()
                 response = await session.get(url, headers=headers)
+
+            if response.status != 200:
+                logger.error(f"Failed to fetch orders: {response.text}")
+                return
 
             orders_data = await response.json()
             if orders_data and orders_data.get("result"):
