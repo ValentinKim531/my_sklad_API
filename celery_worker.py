@@ -33,7 +33,7 @@ app.conf.broker_connection_max_retries = None
 app.conf.beat_schedule = {
     'process-orders-every-3-minutes': {
         'task': 'celery_worker.process_orders',
-        'schedule': crontab(minute='*/3', hour='14-20'),
+        'schedule': 60.0,
     },
     # 'update-order-statuses-every-10-seconds': {
     #     'task': 'celery_worker.update_order_statuses',
