@@ -1,5 +1,3 @@
-import os
-
 import aioredis
 import json
 import logging
@@ -18,7 +16,7 @@ async def save_orders_to_redis(orders_data):
         order_number = order["order_number"]
         if order.get("pharmacy_status") == "InPharmacyReady":
             await redis.set(order_number, json.dumps(order))
-            logger.info(f"Order {order_number} saved to Redis.")
+            # logger.info(f"Order {order_number} saved to Redis.")
     await redis.close()
     await redis.connection_pool.disconnect()
 

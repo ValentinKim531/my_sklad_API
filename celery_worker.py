@@ -6,6 +6,8 @@ import httpx
 from celery import Celery
 from aiohttp import ClientSession
 import aioredis
+from celery.schedules import crontab
+
 from crud import save_orders_to_redis, update_order_status_in_redis
 from main import get_daribar_headers, get_mysklad_headers, BASE_URL_DARIBAR, BASE_URL_SKLAD, \
     create_customer_order_in_mysklad, extract_daribar_order_number_from_description, refresh_daribar_token, \
@@ -29,9 +31,9 @@ app.conf.broker_connection_retry_on_startup = True
 app.conf.broker_connection_max_retries = None
 
 app.conf.beat_schedule = {
-    'process-orders-every-10-seconds': {
+    'process-orders-every-3-minutes': {
         'task': 'celery_worker.process_orders',
-        'schedule': 30.0,
+        'schedule': crontab(minute='*/3', hour='14-20'),
     },
     # 'update-order-statuses-every-10-seconds': {
     #     'task': 'celery_worker.update_order_statuses',
@@ -131,9 +133,7 @@ async def process_orders_async():
                     redis_key = f"daribar_order:{daribar_order_number}"
 
                     if await redis.exists(redis_key):
-                        logger.info(f"Order {daribar_order_number} already exists in Redis.")
                         if order_data.get("pharmacy_status") == "Canceled":
-                            logger.info(f"Order {daribar_order_number} is Canceled in Daribar.")
                             order_info = await redis.get(redis_key)
                             order_info = json.loads(order_info)
                             mysklad_order_id = order_info.get("mysklad_order_id")

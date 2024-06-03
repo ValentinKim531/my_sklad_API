@@ -50,8 +50,8 @@ async def initialize_tokens():
     if not DARIBAR_ACCESS_TOKEN or not DARIBAR_REFRESH_TOKEN:
         logger.info("Tokens not found in Redis, refreshing tokens...")
         await refresh_daribar_token()
-    else:
-        logger.info("Tokens successfully loaded from Redis")
+    # else:
+    #     logger.info("Tokens successfully loaded from Redis")
 
 async def refresh_daribar_token():
     global DARIBAR_REFRESH_TOKEN
