@@ -2,14 +2,11 @@ version: '3.8'
 
 services:
   redis:
-    image: redis:7.2.5
+    image: redis
     hostname: redis
     restart: always
     ports:
       - "6379:6379"
-    sysctls:
-      - net.core.somaxconn=1024
-      - vm.overcommit_memory=1
     networks:
       - my_sklad_net
 
@@ -24,7 +21,7 @@ services:
     depends_on:
       - redis
     environment:
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: ${REDIS_URL}
 
   celery_worker:
     build: .
@@ -36,7 +33,7 @@ services:
     depends_on:
       - redis
     environment:
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: ${REDIS_URL}
 
 networks:
   my_sklad_net:
