@@ -6,7 +6,6 @@ import httpx
 from celery import Celery
 from aiohttp import ClientSession
 import aioredis
-from celery.schedules import crontab
 
 from crud import save_orders_to_redis, update_order_status_in_redis
 from main import get_daribar_headers, get_mysklad_headers, BASE_URL_DARIBAR, BASE_URL_SKLAD, \
