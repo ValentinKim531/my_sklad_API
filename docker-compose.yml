@@ -10,6 +10,7 @@ services:
     sysctls:
       - net.core.somaxconn=1024
       - vm.overcommit_memory=1
+    command: ["redis-server", "--appendonly", "yes"]
     networks:
       - my_sklad_net
 

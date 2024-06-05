@@ -7,9 +7,6 @@ COPY . /app
 # Установка необходимых пакетов
 RUN apt-get update && apt-get install -y redis-server
 
-# Настройка overcommit_memory
-RUN echo 'vm.overcommit_memory=1' >> /etc/sysctl.conf && sysctl -p
-
 # Создание виртуальной среды и установка зависимостей
 RUN python3 -m venv /app/.venv
 RUN /app/.venv/bin/pip install --upgrade pip && /app/.venv/bin/pip install -r requirements.txt
