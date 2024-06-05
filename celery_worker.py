@@ -24,6 +24,7 @@ backend_url = env.str('REDIS_URL')
 
 
 # app = Celery('tasks', broker='redis://localhost:6379/0', backend='redis://localhost:6379/0')
+
 app = Celery('tasks', broker=broker_url, backend=backend_url)
 
 app.conf.broker_connection_retry_on_startup = True
