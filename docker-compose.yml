@@ -7,6 +7,9 @@ services:
     restart: always
     ports:
       - "6379:6379"
+    sysctls:
+      - net.core.somaxconn=1024
+      - vm.overcommit_memory=1
     networks:
       - my_sklad_net
 
@@ -22,7 +25,6 @@ services:
       - redis
     environment:
       REDIS_URL: ${REDIS_URL}
-
 
   celery_worker:
     build: .
