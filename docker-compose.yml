@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   redis:
-    image: redis
+    image: redis:7.2.5
     hostname: redis
     restart: always
     ports:
@@ -24,7 +24,7 @@ services:
     depends_on:
       - redis
     environment:
-      REDIS_URL: ${REDIS_URL}
+      REDIS_URL: redis://redis:6379
 
   celery_worker:
     build: .
@@ -36,7 +36,7 @@ services:
     depends_on:
       - redis
     environment:
-      REDIS_URL: ${REDIS_URL}
+      REDIS_URL: redis://redis:6379
 
 networks:
   my_sklad_net:
