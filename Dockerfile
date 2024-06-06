@@ -18,6 +18,7 @@ COPY wait-for-redis.sh /app/wait-for-redis.sh
 # Установка прав на выполнение скриптов
 RUN chmod +x /app/wait-for-redis.sh
 
+
 #EXPOSE 6379
 EXPOSE 8000
 
