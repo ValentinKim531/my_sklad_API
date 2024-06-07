@@ -12,6 +12,7 @@ from main import get_daribar_headers, get_mysklad_headers, BASE_URL_DARIBAR, BAS
     create_customer_order_in_mysklad, extract_daribar_order_number_from_description, refresh_daribar_token, \
     initialize_tokens
 from environs import Env
+from celery.schedules import crontab
 
 env = Env()
 env.read_env()
@@ -31,9 +32,9 @@ app.conf.broker_connection_retry_on_startup = True
 app.conf.broker_connection_max_retries = None
 
 app.conf.beat_schedule = {
-    'process-orders-every-3-minutes': {
+    'process-orders-every-1-minutes': {
         'task': 'celery_worker.process_orders',
-        'schedule': 600.0,
+        'schedule': crontab(minute='*/10', hour='14-19'),
     },
     # 'update-order-statuses-every-10-seconds': {
     #     'task': 'celery_worker.update_order_statuses',
@@ -42,7 +43,7 @@ app.conf.beat_schedule = {
 }
 
 
-app.conf.timezone = 'UTC'
+app.conf.timezone = 'Asia/Almaty'
 
 
 @asynccontextmanager
