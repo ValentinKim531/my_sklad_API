@@ -113,8 +113,9 @@ async def process_orders_async():
         url = f"{BASE_URL_DARIBAR}/public/api/v2/orders?limit=2000"
 
         response = await client.get(url, headers=headers)
+        logger.info(f"response: {response}")
+        logger.info(f"response_status: {response.status_code}")
 
-        logger.info(f"Response status: {response.status}")
         if response.status_code == 401:
             await refresh_daribar_token()
             headers = await get_daribar_headers()

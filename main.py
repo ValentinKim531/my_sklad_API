@@ -63,6 +63,8 @@ async def refresh_daribar_token():
     payload = {"refresh_token": refresh_token}
 
     response = await client.post(refresh_url, json=payload)
+    logger.info(f"response: {response}")
+    logger.info(f"response_status: {response.status_code}")
     if response.status_code == 200:
         tokens = response.json()
         DARIBAR_ACCESS_TOKEN = tokens['result']['access_token']
