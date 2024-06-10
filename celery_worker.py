@@ -125,7 +125,7 @@ async def process_orders_async():
             logger.error(f"Failed to fetch orders: {response.text}")
             return
 
-        orders_data = await response.json()
+        orders_data = response.json()
         if orders_data and orders_data.get("result"):
             await save_orders_to_redis(orders_data["result"])
 
