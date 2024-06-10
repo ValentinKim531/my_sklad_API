@@ -238,7 +238,8 @@ async def process_orders_async():
 @app.task(bind=True, default_retry_delay=5 * 60, max_retries=3)
 def process_orders(self):
     try:
-        asyncio.run(process_orders_async())
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(process_orders_async())
     except RuntimeError as exc:
         raise self.retry(exc=exc)
 
