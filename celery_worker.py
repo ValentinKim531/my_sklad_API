@@ -2,11 +2,9 @@ import logging
 import asyncio
 from contextlib import asynccontextmanager
 import json
-import httpx
 from celery import Celery
-from aiohttp import ClientSession
 import aioredis
-
+from main import client
 from crud import save_orders_to_redis, update_order_status_in_redis
 from main import get_daribar_headers, get_mysklad_headers, BASE_URL_DARIBAR, BASE_URL_SKLAD, \
     create_customer_order_in_mysklad, extract_daribar_order_number_from_description, refresh_daribar_token, \
@@ -73,14 +71,14 @@ async def update_order_status_in_mysklad(order_id, status_href):
             }
         }
     }
-    async with httpx.AsyncClient() as client:
-        response = await client.put(url, headers=headers, json=payload)
-        if response.status_code == 200:
-            logger.info(f"Order {order_id} status updated to Canceled in MySklad.")
-            return True
-        else:
-            logger.error(f"Failed to update order status in MySklad: {response.text}")
-            return False
+
+    response = await client.put(url, headers=headers, json=payload)
+    if response.status_code == 200:
+        logger.info(f"Order {order_id} status updated to Canceled in MySklad.")
+        return True
+    else:
+        logger.error(f"Failed to update order status in MySklad: {response.text}")
+        return False
 
 
 
@@ -89,21 +87,21 @@ async def find_order_in_mysklad(daribar_order_number):
     logger.info(f"daribar_order_number = {daribar_order_number}")
     url = f"{BASE_URL_SKLAD}/entity/customerorder?filter=description~{daribar_order_number}"
     logger.info(f"URL Mysklad found order = {url}")
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url, headers=headers)
-        if response.status_code == 200:
-            orders = response.json().get("rows", [])
-            logger.info(f"order found: {orders}")
-            for order in orders:
-                order_id = order["id"]
-                logger.info(f"order ID: {order_id}")
-                order_description = order["description"]
-                extracted_order_number = await extract_daribar_order_number_from_description(order_description)
-                logger.info(f"extracted_order_number ID: {extracted_order_number} = {daribar_order_number}")
-                if extracted_order_number == daribar_order_number:
-                    return order_id
-        logger.error(f"Order {daribar_order_number} not found in MySklad.")
-        return None
+
+    response = await client.get(url, headers=headers)
+    if response.status_code == 200:
+        orders = response.json().get("rows", [])
+        logger.info(f"order found: {orders}")
+        for order in orders:
+            order_id = order["id"]
+            logger.info(f"order ID: {order_id}")
+            order_description = order["description"]
+            extracted_order_number = await extract_daribar_order_number_from_description(order_description)
+            logger.info(f"extracted_order_number ID: {extracted_order_number} = {daribar_order_number}")
+            if extracted_order_number == daribar_order_number:
+                return order_id
+    logger.error(f"Order {daribar_order_number} not found in MySklad.")
+    return None
 
 
 
@@ -113,51 +111,51 @@ async def process_orders_async():
     async with redis_lock(redis, "process_orders_lock", timeout=30):
         headers = await get_daribar_headers()
         url = f"{BASE_URL_DARIBAR}/public/api/v2/orders?limit=2000"
-        async with ClientSession() as session:
-            response = await session.get(url, headers=headers)
 
-            logger.info(f"Response status: {response.status}")
-            if response.status == 401:
-                await refresh_daribar_token()
-                headers = await get_daribar_headers()
-                response = await session.get(url, headers=headers)
+        response = await client.get(url, headers=headers)
 
-            if response.status != 200:
-                logger.error(f"Failed to fetch orders: {response.text}")
-                return
+        logger.info(f"Response status: {response.status}")
+        if response.status == 401:
+            await refresh_daribar_token()
+            headers = await get_daribar_headers()
+            response = await client.get(url, headers=headers)
 
-            orders_data = await response.json()
-            if orders_data and orders_data.get("result"):
-                await save_orders_to_redis(orders_data["result"])
+        if response.status != 200:
+            logger.error(f"Failed to fetch orders: {response.text}")
+            return
 
-                for order_data in orders_data["result"]:
-                    daribar_order_number = order_data["order_number"]
-                    redis_key = f"daribar_order:{daribar_order_number}"
+        orders_data = await response.json()
+        if orders_data and orders_data.get("result"):
+            await save_orders_to_redis(orders_data["result"])
 
-                    if await redis.exists(redis_key):
-                        if order_data.get("pharmacy_status") == "Canceled":
-                            order_info = await redis.get(redis_key)
-                            order_info = json.loads(order_info)
-                            mysklad_order_id = order_info.get("mysklad_order_id")
-                            if not mysklad_order_id:
-                                mysklad_order_id = await find_order_in_mysklad(daribar_order_number)
-                                if mysklad_order_id:
-                                    order_info["mysklad_order_id"] = mysklad_order_id
+            for order_data in orders_data["result"]:
+                daribar_order_number = order_data["order_number"]
+                redis_key = f"daribar_order:{daribar_order_number}"
 
+                if await redis.exists(redis_key):
+                    if order_data.get("pharmacy_status") == "Canceled":
+                        order_info = await redis.get(redis_key)
+                        order_info = json.loads(order_info)
+                        mysklad_order_id = order_info.get("mysklad_order_id")
+                        if not mysklad_order_id:
+                            mysklad_order_id = await find_order_in_mysklad(daribar_order_number)
                             if mysklad_order_id:
-                                canceled_status_href = "https://api.moysklad.ru/api/remap/1.2/entity/customerorder/metadata/states/62b7634a-dbb2-11ee-0a80-165c0013055b"
-                                await update_order_status_in_mysklad(mysklad_order_id, canceled_status_href)
-                                order_info["pharmacy_status"] = "Canceled"
-                                await redis.set(redis_key, json.dumps(order_info))
-                        continue
+                                order_info["mysklad_order_id"] = mysklad_order_id
 
-                    if order_data.get("pharmacy_status") == "InPharmacyReady":
-                        created = await create_customer_order_in_mysklad(order_data)
-                        if created:
-                            logger.info(f"Order {daribar_order_number} created in MySklad.")
-                            await redis.set(redis_key, json.dumps(order_data))
-                        else:
-                            logger.error(f"Failed to create order {daribar_order_number} in MySklad.")
+                        if mysklad_order_id:
+                            canceled_status_href = "https://api.moysklad.ru/api/remap/1.2/entity/customerorder/metadata/states/62b7634a-dbb2-11ee-0a80-165c0013055b"
+                            await update_order_status_in_mysklad(mysklad_order_id, canceled_status_href)
+                            order_info["pharmacy_status"] = "Canceled"
+                            await redis.set(redis_key, json.dumps(order_info))
+                    continue
+
+                if order_data.get("pharmacy_status") == "InPharmacyReady":
+                    created = await create_customer_order_in_mysklad(order_data)
+                    if created:
+                        logger.info(f"Order {daribar_order_number} created in MySklad.")
+                        await redis.set(redis_key, json.dumps(order_data))
+                    else:
+                        logger.error(f"Failed to create order {daribar_order_number} in MySklad.")
     await redis.close()
 
 

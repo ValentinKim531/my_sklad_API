@@ -16,6 +16,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 fastapi_app = FastAPI()
+client = httpx.AsyncClient()
+
+
 env = Env()
 env.read_env()
 
@@ -58,15 +61,15 @@ async def refresh_daribar_token():
     refresh_token = DARIBAR_REFRESH_TOKEN
     refresh_url = f"{BASE_URL_DARIBAR}/api/v1/auth/refresh"
     payload = {"refresh_token": refresh_token}
-    async with httpx.AsyncClient() as client:
-        response = await client.post(refresh_url, json=payload)
-        if response.status_code == 200:
-            tokens = response.json()
-            DARIBAR_ACCESS_TOKEN = tokens['result']['access_token']
-            await save_tokens_to_redis(DARIBAR_ACCESS_TOKEN)
-            logger.info(f"Daribar token refreshed successfully {DARIBAR_ACCESS_TOKEN}")
-        else:
-            logger.error(f"Failed to refresh Daribar token: {response.text}")
+
+    response = await client.post(refresh_url, json=payload)
+    if response.status_code == 200:
+        tokens = response.json()
+        DARIBAR_ACCESS_TOKEN = tokens['result']['access_token']
+        await save_tokens_to_redis(DARIBAR_ACCESS_TOKEN)
+        logger.info(f"Daribar token refreshed successfully {DARIBAR_ACCESS_TOKEN}")
+    else:
+        logger.error(f"Failed to refresh Daribar token: {response.text}")
 
 async def save_tokens_to_redis(access_token):
     redis = await aioredis.from_url(broker_url, encoding="utf-8", decode_responses=True)
@@ -84,13 +87,13 @@ async def get_orders(limit: int = 200000):
     headers = await get_daribar_headers()
     print(headers)
     url = f"{BASE_URL_DARIBAR}/public/api/v2/orders?limit={limit}"
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url, headers=headers)
-        if response.status_code == 200:
-            logger.info(f"Response.json: {response.json()}")
-            return response.json()
-        else:
-            raise HTTPException(status_code=response.status_code, detail=response.text)
+
+    response = await client.get(url, headers=headers)
+    if response.status_code == 200:
+        logger.info(f"Response.json: {response.json()}")
+        return response.json()
+    else:
+        raise HTTPException(status_code=response.status_code, detail=response.text)
 
 SKU_MAPPING_HREF = {
     "116864": "https://api.moysklad.ru/api/remap/1.2/entity/product/fa0878c2-e766-11ee-0a80-0bf2000b5bba",
@@ -184,14 +187,14 @@ async def create_customer_order_in_mysklad(order_data: dict):
     }
     logging.info(f"Order_request to Mysklad: {order_request}")
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post(url, headers=headers, json=order_request)
-        if response.status_code == 200:
-            logger.info(f"Created in Mysklad: {order_request}")
-            return True
-        else:
-            logger.error(f"Failed to create order in MySklad: {response.text}")
-            return False
+
+    response = await client.post(url, headers=headers, json=order_request)
+    if response.status_code == 200:
+        logger.info(f"Created in Mysklad: {order_request}")
+        return True
+    else:
+        logger.error(f"Failed to create order in MySklad: {response.text}")
+        return False
 
 
 async def extract_daribar_order_number_from_description(description: str) -> str:
@@ -241,49 +244,49 @@ async def export_orders():
     headers = await get_daribar_headers()
     url = f"{BASE_URL_DARIBAR}/public/api/v2/orders?limit=2000"
     try:
-        async with httpx.AsyncClient() as client:
+        response = await client.get(url, headers=headers)
+        if response.status_code == 401:
+            await refresh_daribar_token()
+            headers = await get_daribar_headers()
             response = await client.get(url, headers=headers)
-            if response.status_code == 401:
-                await refresh_daribar_token()
-                headers = await get_daribar_headers()
-                response = await client.get(url, headers=headers)
 
-            response.raise_for_status()  # Проверка на успешный статус ответа
+        response.raise_for_status()  # Проверка на успешный статус ответа
 
-            orders_data = response.json()
-            orders = orders_data.get("result", [])
+        orders_data = response.json()
+        orders = orders_data.get("result", [])
 
-            filtered_orders = [
-                order for order in orders if order.get("pharmacy_status") == "InPharmacyReady"
-            ]
+        filtered_orders = [
+            order for order in orders if order.get("pharmacy_status") == "InPharmacyReady"
+        ]
 
-            if not filtered_orders:
-                raise HTTPException(status_code=404, detail="No orders found with status 'InPharmacyReady'")
+        if not filtered_orders:
+            raise HTTPException(status_code=404, detail="No orders found with status 'InPharmacyReady'")
 
-            order_items = []
-            for order in filtered_orders:
-                items = order.get("items", [])
-                for item in items:
-                    sku = item.get("sku")
-                    name = SKU_MAPPING.get(sku, "Unknown")
-                    quantity = item.get("quantity")
-                    order_items.append({"Наименование": name, "Количество": quantity})
+        order_items = []
+        for order in filtered_orders:
+            items = order.get("items", [])
+            for item in items:
+                sku = item.get("sku")
+                name = SKU_MAPPING.get(sku, "Unknown")
+                quantity = item.get("quantity")
+                order_items.append({"Наименование": name, "Количество": quantity})
 
-            df = pd.DataFrame(order_items)
+        df = pd.DataFrame(order_items)
 
-            bio = io.BytesIO()
-            with pd.ExcelWriter(bio, engine='xlsxwriter') as writer:
-                df.to_excel(writer, index=False)
-            bio.seek(0)
+        bio = io.BytesIO()
+        with pd.ExcelWriter(bio, engine='xlsxwriter') as writer:
+            df.to_excel(writer, index=False)
+        bio.seek(0)
 
-            filename = "orders_export.xlsx"
+        filename = "orders_export.xlsx"
 
-            headers = {
-                'Content-Disposition': f'attachment; filename="{filename}"',
-                'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            }
+        headers = {
+            'Content-Disposition': f'attachment; filename="{filename}"',
+            'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        }
 
-            return StreamingResponse(bio, headers=headers)
+        return StreamingResponse(bio, headers=headers)
+
     except httpx.HTTPStatusError as e:
         logger.error(f"HTTP error occurred: {e.response.status_code} - {e.response.text}")
         raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
@@ -300,6 +303,11 @@ async def startup_event():
     if not DARIBAR_ACCESS_TOKEN or not DARIBAR_REFRESH_TOKEN:
         await refresh_daribar_token()
     logger.info("Application startup complete and listening on port 8000")
+
+
+@fastapi_app.on_event("shutdown")
+async def shutdown_event():
+    await client.aclose()
 
 
 @fastapi_app.get("/q")
