@@ -115,12 +115,12 @@ async def process_orders_async():
         response = await client.get(url, headers=headers)
 
         logger.info(f"Response status: {response.status}")
-        if response.status == 401:
+        if response.status_code == 401:
             await refresh_daribar_token()
             headers = await get_daribar_headers()
             response = await client.get(url, headers=headers)
 
-        if response.status != 200:
+        if response.status_code != 200:
             logger.error(f"Failed to fetch orders: {response.text}")
             return
 
